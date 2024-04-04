@@ -980,24 +980,27 @@ updateBones()
 	self endon( "disconnect" );
 	self endon( "spawned_player" );
 
-	bones = strtok( self.pers[ "bots" ][ "skill" ][ "bones" ], "," );
-	waittime = self.pers[ "bots" ][ "skill" ][ "bone_update_interval" ];
-
 	for ( ;; )
 	{
-		self waittill_any_timeout( waittime, "new_enemy" );
+		oldbones = self.pers[ "bots" ][ "skill" ][ "bones" ];
+		bones = strtok( oldbones, "," );
 
-		if ( !isalive( self ) )
+		while ( oldbones == self.pers[ "bots" ][ "skill" ][ "bones" ] )
 		{
-			return;
-		}
+			self waittill_any_timeout( self.pers[ "bots" ][ "skill" ][ "bone_update_interval" ], "new_enemy" );
 
-		if ( !isdefined( self.bot.target ) )
-		{
-			continue;
-		}
+			if ( !isalive( self ) )
+			{
+				return;
+			}
 
-		self.bot.target.bone = random( bones );
+			if ( !isdefined( self.bot.target ) )
+			{
+				continue;
+			}
+
+			self.bot.target.bone = random( bones );
+		}
 	}
 }
 
@@ -1104,6 +1107,23 @@ targetObjUpdateNoTrace( obj )
 	obj.no_trace_time += 50;
 	obj.trace_time = 0;
 	obj.didlook = false;
+}
+
+/*
+	Returns true if myEye can see the bone of self
+*/
+checkTraceForBone( myEye, bone )
+{
+	boneLoc = self gettagorigin( bone );
+
+	if ( !isdefined( boneLoc ) )
+	{
+		return false;
+	}
+
+	trace = bullettrace( myEye, boneLoc, false, undefined );
+
+	return ( sighttracepassed( myEye, boneLoc, false, undefined ) && ( trace[ "fraction" ] >= 1.0 || trace[ "surfacetype" ] == "glass" ) );
 }
 
 /*
@@ -1244,21 +1264,9 @@ target_loop()
 			}
 			else
 			{
-				targetHead = player gettagorigin( "j_head" );
-				targetAnkleLeft = player gettagorigin( "j_ankle_le" );
-				targetAnkleRight = player gettagorigin( "j_ankle_ri" );
-
-				traceHead = bullettrace( myEye, targetHead, false, undefined );
-				traceAnkleLeft = bullettrace( myEye, targetAnkleLeft, false, undefined );
-				traceAnkleRight = bullettrace( myEye, targetAnkleRight, false, undefined );
-
-				canTargetPlayer = ( ( sighttracepassed( myEye, targetHead, false, undefined ) ||
-							sighttracepassed( myEye, targetAnkleLeft, false, undefined ) ||
-							sighttracepassed( myEye, targetAnkleRight, false, undefined ) )
-
-						&& ( ( traceHead[ "fraction" ] >= 1.0 || traceHead[ "surfacetype" ] == "glass" ) ||
-							( traceAnkleLeft[ "fraction" ] >= 1.0 || traceAnkleLeft[ "surfacetype" ] == "glass" ) ||
-							( traceAnkleRight[ "fraction" ] >= 1.0 || traceAnkleRight[ "surfacetype" ] == "glass" ) )
+				canTargetPlayer = ( ( player checkTraceForBone( myEye, "j_head" ) ||
+							player checkTraceForBone( myEye, "j_ankle_le" ) ||
+							player checkTraceForBone( myEye, "j_ankle_ri" ) )
 
 						&& ( ignoreSmoke ||
 							SmokeTrace( myEye, player.origin, level.smokeradius ) ||
@@ -2169,9 +2177,9 @@ walk_loop()
 
 	dist = 16;
 
-	if ( level.waypointcount )
+	if ( level.waypoints.size )
 	{
-		goal = level.waypoints[ randomint( level.waypointcount ) ].origin;
+		goal = level.waypoints[ randomint( level.waypoints.size ) ].origin;
 	}
 	else
 	{

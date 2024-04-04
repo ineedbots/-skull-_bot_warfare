@@ -137,29 +137,29 @@ watchAstarCommand()
 	self endon( "death" );
 
 	self notifyonplayercommand( "astar", "+gostand" );
+	self.astar = undefined;
 
 	for ( ;; )
 	{
 		self waittill( "astar" );
 
-		if ( 1 )
+		if ( isdefined( self.astar ) )
 		{
-			continue;
+			self iprintln( "Clear AStar" );
+			self.astar = undefined;
+			self waittill( "astar" );
 		}
 
 		self iprintln( "Start AStar" );
-		self.astar = undefined;
-		astar = spawnstruct();
-		astar.start = self.origin;
+		self.astar = spawnstruct();
+		self.astar.start = self.origin;
 
 		self waittill( "astar" );
 		self iprintln( "End AStar" );
-		astar.goal = self.origin;
+		self.astar.goal = self.origin;
 
-		astar.nodes = AStarSearch( astar.start, astar.goal, undefined, true );
-		self iprintln( "AStar size: " + astar.nodes.size );
-
-		self.astar = astar;
+		self.astar.nodes = AStarSearch( self.astar.start, self.astar.goal, undefined, true );
+		self iprintln( "AStar size: " + self.astar.nodes.size );
 	}
 }
 
@@ -251,21 +251,31 @@ updateWaypointsStats()
 
 		if ( isdefined( self.astar ) )
 		{
-			print3d( self.astar.start + ( 0, 0, 35 ), "start", ( 0, 0, 1 ), 2 );
-			print3d( self.astar.goal + ( 0, 0, 35 ), "goal", ( 0, 0, 1 ), 2 );
-
-			prev = self.astar.start + ( 0, 0, 35 );
-
-			for ( i = self.astar.nodes.size - 1; i >= 0; i-- )
+			if ( isdefined( self.astar.start ) )
 			{
-				node = self.astar.nodes[ i ];
-
-				line( prev, level.waypoints[ node ].origin + ( 0, 0, 35 ), ( 0, 1, 1 ) );
-
-				prev = level.waypoints[ node ].origin + ( 0, 0, 35 );
+				print3d( self.astar.start + ( 0, 0, 35 ), "start", ( 0, 0, 1 ), 2 );
 			}
 
-			line( prev, self.astar.goal + ( 0, 0, 35 ), ( 0, 1, 1 ) );
+			if ( isdefined( self.astar.goal ) )
+			{
+				print3d( self.astar.goal + ( 0, 0, 35 ), "goal", ( 0, 0, 1 ), 2 );
+			}
+
+			if ( isdefined( self.astar.start ) && isdefined( self.astar.goal ) && isdefined( self.astar.nodes ) )
+			{
+				prev = self.astar.start + ( 0, 0, 35 );
+
+				for ( i = self.astar.nodes.size - 1; i >= 0; i-- )
+				{
+					node = self.astar.nodes[ i ];
+
+					line( prev, level.waypoints[ node ].origin + ( 0, 0, 35 ), ( 0, 1, 1 ) );
+
+					prev = level.waypoints[ node ].origin + ( 0, 0, 35 );
+				}
+
+				line( prev, self.astar.goal + ( 0, 0, 35 ), ( 0, 1, 1 ) );
+			}
 		}
 	}
 }
@@ -483,6 +493,7 @@ LoadWaypoints()
 	self DeleteAllWaypoints();
 	self iprintlnbold( "Loading WPS..." );
 	load_waypoints();
+	level.waypointcount = level.waypoints.size;
 
 	wait 1;
 
@@ -771,7 +782,7 @@ DeleteAllWaypoints()
 	self iprintln( "DelAllWps" );
 }
 
-buildChildCountString ( wp )
+buildChildCountString( wp )
 {
 	if ( wp == -1 )
 	{

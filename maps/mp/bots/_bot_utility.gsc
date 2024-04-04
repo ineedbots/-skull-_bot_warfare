@@ -1292,7 +1292,6 @@ readWpsFromFile( mapname )
 */
 load_waypoints()
 {
-	level.waypointcount = 0;
 	level.waypointusage = [];
 	level.waypointusage[ "allies" ] = [];
 	level.waypointusage[ "axis" ] = [];
@@ -1331,9 +1330,7 @@ load_waypoints()
 		BotBuiltinPrintConsole( "No waypoints loaded!" );
 	}
 
-	level.waypointcount = level.waypoints.size;
-
-	for ( i = 0; i < level.waypointcount; i++ )
+	for ( i = level.waypoints.size - 1; i >= 0; i-- )
 	{
 		if ( !isdefined( level.waypoints[ i ].children ) || !isdefined( level.waypoints[ i ].children.size ) )
 		{
@@ -1432,7 +1429,7 @@ getWaypointsOfType( type )
 {
 	answer = [];
 
-	for ( i = 0; i < level.waypointcount; i++ )
+	for ( i = level.waypoints.size - 1; i >= 0; i-- )
 	{
 		wp = level.waypoints[ i ];
 
@@ -2440,16 +2437,18 @@ RemoveWaypointUsage( wp, team )
 		return;
 	}
 
-	if ( !isdefined( level.waypointusage[ team ][ wp + "" ] ) )
+	wpstr = wp + "";
+
+	if ( !isdefined( level.waypointusage[ team ][ wpstr ] ) )
 	{
 		return;
 	}
 
-	level.waypointusage[ team ][ wp + "" ]--;
+	level.waypointusage[ team ][ wpstr ]--;
 
-	if ( level.waypointusage[ team ][ wp + "" ] <= 0 )
+	if ( level.waypointusage[ team ][ wpstr ] <= 0 )
 	{
-		level.waypointusage[ team ][ wp + "" ] = undefined;
+		level.waypointusage[ team ][ wpstr ] = undefined;
 	}
 }
 
@@ -2461,7 +2460,7 @@ getNearestWaypointWithSight( pos )
 	candidate = undefined;
 	dist = 2147483647;
 
-	for ( i = 0; i < level.waypointcount; i++ )
+	for ( i = level.waypoints.size - 1; i >= 0; i-- )
 	{
 		if ( !bullettracepassed( pos + ( 0, 0, 15 ), level.waypoints[ i ].origin + ( 0, 0, 15 ), false, undefined ) )
 		{
@@ -2490,7 +2489,7 @@ getNearestWaypoint( pos )
 	candidate = undefined;
 	dist = 2147483647;
 
-	for ( i = 0; i < level.waypointcount; i++ )
+	for ( i = level.waypoints.size - 1; i >= 0; i-- )
 	{
 		curdis = distancesquared( level.waypoints[ i ].origin, pos );
 
@@ -2575,7 +2574,8 @@ AStarSearch( start, goal, team, greedy_path )
 		// pop bestnode from queue
 		bestNode = open.data[ 0 ];
 		open HeapRemove();
-		openset[ bestNode.index + "" ] = undefined;
+		bestNodeStr = bestNode.index + "";
+		openset[ bestNodeStr ] = undefined;
 		wp = level.waypoints[ bestNode.index ];
 
 		// check if we made it to the goal
@@ -2585,14 +2585,16 @@ AStarSearch( start, goal, team, greedy_path )
 
 			while ( isdefined( bestNode ) )
 			{
+				bestNodeStr = bestNode.index + "";
+
 				if ( isdefined( team ) && isdefined( level.waypointusage ) )
 				{
-					if ( !isdefined( level.waypointusage[ team ][ bestNode.index + "" ] ) )
+					if ( !isdefined( level.waypointusage[ team ][ bestNodeStr ] ) )
 					{
-						level.waypointusage[ team ][ bestNode.index + "" ] = 0;
+						level.waypointusage[ team ][ bestNodeStr ] = 0;
 					}
 
-					level.waypointusage[ team ][ bestNode.index + "" ]++;
+					level.waypointusage[ team ][ bestNodeStr ]++;
 				}
 
 				// construct path
@@ -2608,6 +2610,7 @@ AStarSearch( start, goal, team, greedy_path )
 		for ( i = wp.children.size - 1; i >= 0; i-- )
 		{
 			child = wp.children[ i ];
+			childStr = child + "";
 			childWp = level.waypoints[ child ];
 
 			penalty = 1;
@@ -2616,9 +2619,9 @@ AStarSearch( start, goal, team, greedy_path )
 			{
 				temppen = 1;
 
-				if ( isdefined( level.waypointusage[ team ][ child + "" ] ) )
+				if ( isdefined( level.waypointusage[ team ][ childStr ] ) )
 				{
-					temppen = level.waypointusage[ team ][ child + "" ]; // consider how many bots are taking this path
+					temppen = level.waypointusage[ team ][ childStr ]; // consider how many bots are taking this path
 				}
 
 				if ( temppen > 1 )
@@ -2637,16 +2640,16 @@ AStarSearch( start, goal, team, greedy_path )
 			newg = bestNode.g + distancesquared( wp.origin, childWp.origin ) * penalty; // bots on same team's path are more expensive
 
 			// check if this child is in open or close with a g value less than newg
-			inopen = isdefined( openset[ child + "" ] );
+			inopen = isdefined( openset[ childStr ] );
 
-			if ( inopen && openset[ child + "" ].g <= newg )
+			if ( inopen && openset[ childStr ].g <= newg )
 			{
 				continue;
 			}
 
-			inclosed = isdefined( closed[ child + "" ] );
+			inclosed = isdefined( closed[ childStr ] );
 
-			if ( inclosed && closed[ child + "" ].g <= newg )
+			if ( inclosed && closed[ childStr ].g <= newg )
 			{
 				continue;
 			}
@@ -2655,11 +2658,11 @@ AStarSearch( start, goal, team, greedy_path )
 
 			if ( inopen )
 			{
-				node = openset[ child + "" ];
+				node = openset[ childStr ];
 			}
 			else if ( inclosed )
 			{
-				node = closed[ child + "" ];
+				node = closed[ childStr ];
 			}
 			else
 			{
@@ -2675,19 +2678,19 @@ AStarSearch( start, goal, team, greedy_path )
 			// check if in closed, remove it
 			if ( inclosed )
 			{
-				closed[ child + "" ] = undefined;
+				closed[ childStr ] = undefined;
 			}
 
 			// check if not in open, add it
 			if ( !inopen )
 			{
 				open HeapInsert( node );
-				openset[ child + "" ] = node;
+				openset[ childStr ] = node;
 			}
 		}
 
 		// done with children, push onto closed
-		closed[ bestNode.index + "" ] = bestNode;
+		closed[ bestNodeStr ] = bestNode;
 	}
 
 	return [];
