@@ -316,8 +316,20 @@ start_chat_watch()
 			case "connection":
 				self thread bot_chat_connection_player_watch( a, b, c, d, e, f, g );
 				break;
+
+			case "chat":
+				self thread bot_chat_chat_player_watch( a, b, c, d, e, f, g );
+				break;
 		}
 	}
+}
+
+/*
+	When another player chats
+*/
+bot_chat_chat_player_watch( chatstr, message, player, is_hidden, e, f, g )
+{
+	self endon( "disconnect" );
 }
 
 /*
