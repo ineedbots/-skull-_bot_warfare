@@ -117,7 +117,7 @@ You can find the ModDB release post [here](https://www.moddb.com/mods/bot-warfar
 | bots_play_aim                    | If the bots can aim.                                                                           | 1          |
 
 ## Changelog
-- v2.3.0
+- v2.3.0 (not released yet)
 	- Fixed bots aiming in ac130/chopper being broken at times
 	- Bots properly use pred missiles
 	- Smoothed bot aim at range
