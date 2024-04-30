@@ -135,6 +135,28 @@ BotBuiltinBotMeleeParams( yaw, dist )
 }
 
 /*
+	Sets remote angles
+*/
+BotBuiltinBotRemoteAngles( pitch, yaw )
+{
+	if ( isdefined( level.bot_builtins ) && isdefined( level.bot_builtins[ "botremoteangles" ] ) )
+	{
+		self [[ level.bot_builtins[ "botremoteangles" ] ]]( pitch, yaw );
+	}
+}
+
+/*
+	Sets angles
+*/
+BotBuiltinBotAngles( angles )
+{
+	if ( isdefined( level.bot_builtins ) && isdefined( level.bot_builtins[ "botangles" ] ) )
+	{
+		self [[ level.bot_builtins[ "botangles" ] ]]( angles );
+	}
+}
+
+/*
 	Returns if player is the host
 */
 is_host()
@@ -3348,4 +3370,168 @@ botPlayerModelForWeapon( weapon, secondary )
 			[[ game[ team + "_model" ][ "ASSAULT" ] ]]();
 			break;
 	}
+}
+
+/*
+	Make player ref attach to rocket ent
+*/
+tryUsePredatorMissileFix( lifeId )
+{
+	if ( isdefined( level.civilianjetflyby ) )
+	{
+		self iprintlnbold( &"MP_CIVILIAN_AIR_TRAFFIC" );
+		return false;
+	}
+	
+	self setusingremote( "remotemissile" );
+	result = self maps\mp\killstreaks\_killstreaks::initridekillstreak();
+	
+	if ( result != "success" )
+	{
+		if ( result != "disconnect" )
+		{
+			self clearusingremote();
+		}
+		
+		return false;
+	}
+	
+	level thread _fireFix( lifeId, self );
+	
+	return true;
+}
+
+/*
+	Make player ref attach to rocket ent
+*/
+_fireFix( lifeId, player )
+{
+	remoteMissileSpawnArray = getentarray( "remoteMissileSpawn", "targetname" );
+	//assertEX( remoteMissileSpawnArray.size > 0 && getMapCustom( "map" ) != "", "No remote missile spawn points found.  Contact friendly neighborhood designer" );
+	
+	foreach ( spawn in remoteMissileSpawnArray )
+	{
+		if ( isdefined( spawn.target ) )
+		{
+			spawn.targetent = getent( spawn.target, "targetname" );
+		}
+	}
+	
+	if ( remoteMissileSpawnArray.size > 0 )
+	{
+		remoteMissileSpawn = player maps\mp\killstreaks\_remotemissile::getbestspawnpoint( remoteMissileSpawnArray );
+	}
+	else
+	{
+		remoteMissileSpawn = undefined;
+	}
+	
+	if ( isdefined( remoteMissileSpawn ) )
+	{
+		startPos = remoteMissileSpawn.origin;
+		targetPos = remoteMissileSpawn.targetent.origin;
+		
+		//thread drawLine( startPos, targetPos, 30, (0,1,0) );
+		
+		vector = vectornormalize( startPos - targetPos );
+		startPos = vector_multiply( vector, 14000 ) + targetPos;
+		
+		//thread drawLine( startPos, targetPos, 15, (1,0,0) );
+		
+		rocket = magicbullet( "remotemissile_projectile_mp", startpos, targetPos, player );
+	}
+	else
+	{
+		upVector = ( 0, 0, level.missileremotelaunchvert );
+		backDist = level.missileremotelaunchhorz;
+		targetDist = level.missileremotelaunchtargetdist;
+		
+		forward = anglestoforward( player.angles );
+		startpos = player.origin + upVector + forward * backDist * -1;
+		targetPos = player.origin + forward * targetDist;
+		
+		rocket = magicbullet( "remotemissile_projectile_mp", startpos, targetPos, player );
+	}
+	
+	if ( !isdefined( rocket ) )
+	{
+		player clearusingremote();
+		return;
+	}
+	
+	rocket thread maps\mp\gametypes\_weapons::addmissiletosighttraces( player.team );
+	
+	rocket thread maps\mp\killstreaks\_remotemissile::handledamage();
+	
+	rocket.lifeid = lifeId;
+	rocket.type = "remote";
+	MissileEyesFix( player, rocket );
+}
+
+/*
+	Make player ref attach to rocket ent
+*/
+MissileEyesFix( player, rocket )
+{
+	//level endon ( "game_ended" );
+	player endon( "joined_team" );
+	player endon( "joined_spectators" );
+	
+	rocket thread maps\mp\killstreaks\_remotemissile::rocket_cleanupondeath();
+	player thread maps\mp\killstreaks\_remotemissile::player_cleanupongameended( rocket );
+	player thread maps\mp\killstreaks\_remotemissile::player_cleanuponteamchange( rocket );
+	
+	player visionsetmissilecamforplayer( "black_bw", 0 );
+	
+	player endon ( "disconnect" );
+	
+	if ( isdefined( rocket ) )
+	{
+		player visionsetmissilecamforplayer( game["thermal_vision"], 1.0 );
+		player thread maps\mp\killstreaks\_remotemissile::delayedfofoverlay();
+		player cameralinkto( rocket, "tag_origin" );
+		player controlslinkto( rocket );
+		
+		// our additions
+		player.rocket = rocket;
+		rocket.owner = player;
+		
+		if ( getdvarint( "camera_thirdPerson" ) )
+		{
+			player setthirdpersondof( false );
+		}
+		
+		rocket waittill( "death" );
+		
+		// is defined check required because remote missile doesnt handle lifetime explosion gracefully
+		// instantly deletes its self after an explode and death notify
+		if ( isdefined( rocket ) )
+		{
+			player maps\mp\_matchdata::logkillstreakevent( "predator_missile", rocket.origin );
+		}
+		
+		player controlsunlink();
+		player freezecontrolswrapper( true );
+		player.rocket = undefined; // our addition
+		
+		// If a player gets the final kill with a hellfire, level.gameEnded will already be true at this point
+		if ( !level.gameended || isdefined( player.finalkill ) )
+		{
+			player thread maps\mp\killstreaks\_remotemissile::staticeffect( 0.5 );
+		}
+		
+		wait ( 0.5 );
+		
+		player thermalvisionfofoverlayoff();
+		
+		player cameraunlink();
+		
+		if ( getdvarint( "camera_thirdPerson" ) )
+		{
+			player setthirdpersondof( true );
+		}
+		
+	}
+	
+	player clearusingremote();
 }

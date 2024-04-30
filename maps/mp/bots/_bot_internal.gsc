@@ -234,12 +234,6 @@ onWeaponChange()
 		{
 			first = false;
 			newWeapon = self getcurrentweapon();
-			
-			// hack fix for botstop overridding weapon
-			if ( newWeapon != "none" )
-			{
-				self switchtoweapon( newWeapon );
-			}
 		}
 		else
 		{
@@ -375,8 +369,205 @@ watchUsingRemote()
 			self watchUsingAc130();
 		}
 		
+		if ( isdefined( self.rocket ) )
+		{
+			self watchUsingPred();
+			self BotBuiltinBotAction( "-remote" );
+		}
+		
 		self.bot.targets = [];
 		self notify( "kill_goal" );
+	}
+}
+
+/*
+	Returns the angle delta
+*/
+getRemoteAngleSpeed( len )
+{
+	furthest = 10.0;
+	max_speed = 127;
+	
+	switch ( self.pers[ "bots" ][ "skill" ][ "base" ] )
+	{
+		case 1:
+			furthest = 5.0;
+			max_speed = 20;
+			break;
+			
+		case 2:
+			furthest = 6.0;
+			max_speed = 35;
+			break;
+			
+		case 3:
+			furthest = 7.0;
+			max_speed = 55;
+			break;
+			
+		case 4:
+			furthest = 8.0;
+			max_speed = 65;
+			break;
+			
+		case 5:
+			furthest = 9.0;
+			max_speed = 75;
+			break;
+			
+		case 6:
+			furthest = 10.0;
+			max_speed = 100;
+			break;
+			
+		case 7:
+			furthest = 15.0;
+			max_speed = 127;
+			break;
+	}
+	
+	if ( len >= furthest )
+	{
+		return max_speed;
+	}
+	
+	if ( len <= 0.0 )
+	{
+		return 0;
+	}
+	
+	return Round( ( len / furthest ) * max_speed );
+}
+
+/*
+	time to boost the rocket
+*/
+getRemoteBoostTime()
+{
+	switch ( self.pers[ "bots" ][ "skill" ][ "base" ] )
+	{
+		case 1:
+			return 99999;
+			
+		case 2:
+			return 15000;
+			
+		case 3:
+			return 10000;
+			
+		case 4:
+			return 5000;
+			
+		case 5:
+			return 2500;
+			
+		case 6:
+			return 1000;
+			
+		case 7:
+			return 500;
+
+		default:
+			return 500;
+	}
+}
+
+/*
+	While in rocket
+*/
+watchUsingPred()
+{
+	self.rocket endon( "death" );
+	
+	self BotBuiltinBotRemoteAngles( 0, 0 );
+	self BotBuiltinBotAction( "+remote" );
+	
+	pressedFire = false;
+	sTime = gettime();
+	
+	while ( isdefined( self.rocket ) )
+	{
+		self.bot.targets = []; // dont want to fire from aim thread
+		// because geteye doesnt return the eye of the missile
+		
+		target = undefined;
+		myeye = self.rocket.origin;
+		myangles = self.rocket.angles;
+		bestfov = 0.0;
+		
+		for ( i = level.players.size - 1; i >= 0; i-- )
+		{
+			player = level.players[ i ];
+			
+			if ( !isdefined( player ) || !isdefined( player.team ) )
+			{
+				continue;
+			}
+			
+			if ( player == self || ( level.teambased && player.team == self.team ) )
+			{
+				continue;
+			}
+			
+			if ( player.sessionstate != "playing" || !isreallyalive( player ) )
+			{
+				continue;
+			}
+			
+			if ( player _hasperk( "specialty_coldblooded" ) )
+			{
+				continue;
+			}
+			
+			if ( !bullettracepassed( myeye, player.origin + ( 0, 0, 25 ), false, self.rocket ) )
+			{
+				continue;
+			}
+			
+			thisfov = getConeDot( player.origin, myeye, myangles );
+			
+			if ( thisfov < 0.75 )
+			{
+				continue;
+			}
+			
+			if ( isdefined( target ) && thisfov < bestfov )
+			{
+				continue;
+			}
+			
+			target = player;
+			bestfov = thisfov;
+		}
+		
+		if ( isdefined( target ) )
+		{
+			if ( !pressedFire && gettime() - sTime > self getRemoteBoostTime() )
+			{
+				pressedFire = true;
+				self thread pressFire();
+			}
+			
+			if ( bestfov < 0.999995 && distancesquared( target.origin, myeye ) > 256 * 256 )
+			{
+				angles = vectortoangles( ( target.origin - myeye ) - anglestoforward( myangles ) );
+				angles -= myangles;
+				angles = ( angleclamp180( angles[ 0 ] ), angleclamp180( angles[ 1 ] ), 0 );
+				angles = vectornormalize( angles ) * self getRemoteAngleSpeed( length( angles ) );
+				
+				self BotBuiltinBotRemoteAngles( int( angles[ 0 ] ), int( angles[ 1 ] ) );
+			}
+			else
+			{
+				self BotBuiltinBotRemoteAngles( 0, 0 );
+			}
+		}
+		else
+		{
+			self BotBuiltinBotRemoteAngles( 0, 0 );
+		}
+		
+		wait 0.05;
 	}
 }
 
@@ -1736,7 +1927,7 @@ aim_loop()
 					{
 						self thread bot_lookat( target gettagorigin( "j_spine4" ), 0.05 );
 					}
-					else if ( !nadeAimOffset && conedot > 0.999 && lengthsquared( aimoffset ) < 0.05 )
+					else if ( !nadeAimOffset && conedot > 0.999995 && lengthsquared( aimoffset ) < 0.05 )
 					{
 						self thread bot_lookat( aimpos, 0.05 );
 					}
@@ -1754,7 +1945,7 @@ aim_loop()
 					
 					conedot = getConeDot( aimpos, eyePos, angles );
 					
-					if ( !nadeAimOffset && conedot > 0.999 && lengthsquared( aimoffset ) < 0.05 )
+					if ( !nadeAimOffset && conedot > 0.999995 && lengthsquared( aimoffset ) < 0.05 )
 					{
 						self thread bot_lookat( aimpos, 0.05 );
 					}
@@ -3127,7 +3318,7 @@ bot_lookat( pos, time, vel, doAimPredict )
 	for ( i = 0; i < steps; i++ )
 	{
 		myAngle = ( angleclamp180( myAngle[ 0 ] + X ), angleclamp180( myAngle[ 1 ] + Y ), 0 );
-		self setplayerangles( myAngle );
+		self BotBuiltinBotAngles( myAngle );
 		wait 0.05;
 	}
 }

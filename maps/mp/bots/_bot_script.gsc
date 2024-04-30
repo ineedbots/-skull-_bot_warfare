@@ -5025,27 +5025,6 @@ getKillstreakTargetLocation()
 }
 
 /*
-	Clears remote usage when bot dies
-*/
-clear_remote_on_death( isac130 )
-{
-	self endon( "bot_clear_remote_on_death" );
-	level endon( "game_ended" );
-	
-	self waittill_either( "death", "disconnect" );
-	
-	if ( isdefined( isac130 ) && isac130 )
-	{
-		level.ac130inuse = false;
-	}
-	
-	if ( isdefined( self ) )
-	{
-		self clearusingremote();
-	}
-}
-
-/*
 	Returns if any harriers exists that is an enemy
 */
 isAnyEnemyPlanes()
@@ -5142,6 +5121,11 @@ bot_killstreak_think_loop( data )
 		self thread BotPressAttack( 0.05 );
 	}
 	
+	if ( iskillstreakweapon( curWeap ) )
+	{
+		self thread changeToWeapon( self getlastweapon() );
+		return;
+	}
 	
 	streakName = self.pers[ "killstreaks" ][ 0 ].streakname;
 	
@@ -5246,50 +5230,11 @@ bot_killstreak_think_loop( data )
 			self BotNotifyBotEvent( "killstreak", "call", streakName, location );
 			
 			self BotRandomStance();
-			self setusingremote( "remotemissile" );
-			self thread clear_remote_on_death();
 			self BotStopMoving( true );
+			self changeToWeapon( ksWeap );
 			
-			if ( !self changeToWeapon( ksWeap ) )
-			{
-				self clearusingremote();
-				self notify( "bot_clear_remote_on_death" );
-				self BotStopMoving( false );
-				return;
-			}
-			
-			wait 0.05;
-			self thread changeToWeapon( ksWeap ); // prevent script from changing back
-			
-			wait 1;
-			self notify( "bot_clear_remote_on_death" );
+			wait 3;
 			self BotStopMoving( false );
-			
-			if ( self isemped() )
-			{
-				self clearusingremote();
-				self thread changeToWeapon( curWeap );
-				return;
-			}
-			
-			self BotFreezeControls( true );
-			
-			self maps\mp\killstreaks\_killstreaks::usedkillstreak( "predator_missile", true );
-			self maps\mp\killstreaks\_killstreaks::shufflekillstreaksfilo( "predator_missile" );
-			self maps\mp\killstreaks\_killstreaks::giveownedkillstreakitem();
-			
-			rocket = magicbullet( "remotemissile_projectile_mp", self.origin + ( 0.0, 0.0, 7000.0 - ( self.pers[ "bots" ][ "skill" ][ "base" ] * 400 ) ), location, self );
-			rocket.lifeid = lifeId;
-			rocket.type = "remote";
-			
-			rocket thread maps\mp\gametypes\_weapons::addmissiletosighttraces( self.pers[ "team" ] );
-			rocket thread maps\mp\killstreaks\_remotemissile::handledamage();
-			thread maps\mp\killstreaks\_remotemissile::missileeyes( self, rocket );
-			
-			self waittill( "stopped_using_remote" );
-			
-			wait 1;
-			self BotFreezeControls( false );
 		}
 		else if ( streakName == "ac130" )
 		{
