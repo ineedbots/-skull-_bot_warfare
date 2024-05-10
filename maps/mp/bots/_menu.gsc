@@ -55,9 +55,47 @@ watchPlayers()
 	}
 }
 
+destroyFixed()
+{
+	if ( !isdefined( self ) )
+	{
+		return;
+	}
+	
+	self destroy();
+}
+
+removeChildFixed( element )
+{
+	temp = [];
+	
+	for ( i = 0; i < self.children.size ; i++ )
+	{
+		if ( isdefined( self.children[ i ] ) && self.children[ i ] != element )
+		{
+			self.children[ i ].index = temp.size;
+			temp[ temp.size ] = self.children[ i ];
+		}
+	}
+	
+	self.children = temp;
+	
+	element.index = undefined;
+	element.parent = undefined;
+}
+
 destroyElemFixed()
 {
-	self.parent removechild( self );
+	if ( !isdefined( self ) )
+	{
+		return;
+	}
+	
+	if ( isdefined( self.parent ) )
+	{
+		self.parent removeChildFixed( self );
+	}
+	
 	self destroyelem();
 }
 
@@ -131,7 +169,7 @@ watchDisconnect()
 		
 		if ( isdefined( self.menuversionhud ) )
 		{
-			self.menuversionhud destroy();
+			self.menuversionhud destroyFixed();
 		}
 	}
 }
@@ -357,7 +395,7 @@ OpenSub( menu, menu2 )
 		
 		if ( isdefined( self.menuversionhud ) )
 		{
-			self.menuversionhud destroy();
+			self.menuversionhud destroyFixed();
 		}
 		
 		for ( i = 0 ; i < self.option[ "Name" ][ self.submenu ].size ; i++ )
@@ -628,7 +666,7 @@ ExitMenu()
 	
 	if ( isdefined( self.menuversionhud ) )
 	{
-		self.menuversionhud destroy();
+		self.menuversionhud destroyFixed();
 	}
 	
 	self.menuopen = false;
