@@ -55,6 +55,12 @@ watchPlayers()
 	}
 }
 
+destroyElemFixed()
+{
+	self.parent removechild( self );
+	self destroyelem();
+}
+
 kill_menu()
 {
 	self notify( "bots_kill_menu" );
@@ -66,7 +72,6 @@ init_menu()
 	self.menuinit = true;
 	
 	self.menuopen = false;
-	self.menu_player = undefined;
 	self.submenu = "Main";
 	self.curs[ "Main" ][ "X" ] = 0;
 	self addOptions();
@@ -95,7 +100,7 @@ watchDisconnect()
 			{
 				if ( isdefined( self.menutexty[ i ] ) )
 				{
-					self.menutexty[ i ] destroy();
+					self.menutexty[ i ] destroyElemFixed();
 				}
 			}
 		}
@@ -106,7 +111,7 @@ watchDisconnect()
 			{
 				if ( isdefined( self.menutext[ i ] ) )
 				{
-					self.menutext[ i ] destroy();
+					self.menutext[ i ] destroyElemFixed();
 				}
 			}
 		}
@@ -115,12 +120,12 @@ watchDisconnect()
 		{
 			if ( isdefined( self.menu[ "X" ][ "Shader" ] ) )
 			{
-				self.menu[ "X" ][ "Shader" ] destroy();
+				self.menu[ "X" ][ "Shader" ] destroyElemFixed();
 			}
 			
 			if ( isdefined( self.menu[ "X" ][ "Scroller" ] ) )
 			{
-				self.menu[ "X" ][ "Scroller" ] destroy();
+				self.menu[ "X" ][ "Scroller" ] destroyElemFixed();
 			}
 		}
 		
@@ -332,7 +337,7 @@ OpenSub( menu, menu2 )
 			{
 				if ( isdefined( self.menutext[ i ] ) )
 				{
-					self.menutext[ i ] destroy();
+					self.menutext[ i ] destroyElemFixed();
 				}
 			}
 		}
@@ -341,12 +346,12 @@ OpenSub( menu, menu2 )
 		{
 			if ( isdefined( self.menu[ "X" ][ "Shader" ] ) )
 			{
-				self.menu[ "X" ][ "Shader" ] destroy();
+				self.menu[ "X" ][ "Shader" ] destroyElemFixed();
 			}
 			
 			if ( isdefined( self.menu[ "X" ][ "Scroller" ] ) )
 			{
-				self.menu[ "X" ][ "Scroller" ] destroy();
+				self.menu[ "X" ][ "Scroller" ] destroyElemFixed();
 			}
 		}
 		
@@ -402,7 +407,7 @@ OpenSub( menu, menu2 )
 			{
 				if ( isdefined( self.menutexty[ i ] ) )
 				{
-					self.menutexty[ i ] destroy();
+					self.menutexty[ i ] destroyElemFixed();
 				}
 			}
 		}
@@ -426,11 +431,11 @@ CursMove( direction )
 	
 	if ( self.submenu == "Main" )
 	{
-		self.menu[ "X" ][ "Scroller" ].x = self.menutext[ self.curs[ "Main" ][ "X" ] ].x;
-		self.menu[ "X" ][ "Scroller" ].y = self.menutext[ self.curs[ "Main" ][ "X" ] ].y;
-		
 		if ( isdefined( self.menutext ) )
 		{
+			self.menu[ "X" ][ "Scroller" ].x = self.menutext[ self.curs[ "Main" ][ "X" ] ].x;
+			self.menu[ "X" ][ "Scroller" ].y = self.menutext[ self.curs[ "Main" ][ "X" ] ].y;
+			
 			for ( i = 0; i < self.menutext.size; i++ )
 			{
 				if ( isdefined( self.menutext[ i ] ) )
@@ -578,7 +583,7 @@ ExitSub()
 		{
 			if ( isdefined( self.menutexty[ i ] ) )
 			{
-				self.menutexty[ i ] destroy();
+				self.menutexty[ i ] destroyElemFixed();
 			}
 		}
 	}
@@ -603,7 +608,7 @@ ExitMenu()
 		{
 			if ( isdefined( self.menutext[ i ] ) )
 			{
-				self.menutext[ i ] destroy();
+				self.menutext[ i ] destroyElemFixed();
 			}
 		}
 	}
@@ -612,12 +617,12 @@ ExitMenu()
 	{
 		if ( isdefined( self.menu[ "X" ][ "Shader" ] ) )
 		{
-			self.menu[ "X" ][ "Shader" ] destroy();
+			self.menu[ "X" ][ "Shader" ] destroyElemFixed();
 		}
 		
 		if ( isdefined( self.menu[ "X" ][ "Scroller" ] ) )
 		{
-			self.menu[ "X" ][ "Scroller" ] destroy();
+			self.menu[ "X" ][ "Scroller" ] destroyElemFixed();
 		}
 	}
 	

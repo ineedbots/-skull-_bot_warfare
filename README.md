@@ -171,7 +171,6 @@ You can find the ModDB release post [here](https://www.moddb.com/mods/bot-warfar
 
 
 - TODOs
-	- A variable leak in _menu
 	- Recoil for bots (engine, maybe script)
 	- Use static turrets in maps
 
