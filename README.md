@@ -184,7 +184,7 @@ You can find the ModDB release post [here](https://www.moddb.com/mods/bot-warfar
 - INeedGames - http://www.moddb.com/mods/bot-warfare
 - tinkie101 - https://web.archive.org/web/20120326060712/http://alteriw.net/viewtopic.php?f=72&t=4869
 - PeZBot team - http://www.moddb.com/mods/pezbot
-- apdonato - http://rsebots.blogspot.ca/
+- apdonato - https://web.archive.org/web/20240516065610/http://rsebots.blogspot.com/
 - Ability
 - Salvation
 - VicRattlehead - https://www.moddb.com/members/vicrattlehead
