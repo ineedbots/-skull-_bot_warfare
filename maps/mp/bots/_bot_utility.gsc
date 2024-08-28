@@ -1834,7 +1834,7 @@ getGoodMapAmount()
 			}
 			
 		default:
-			return 2;
+			return 8;
 	}
 }
 
