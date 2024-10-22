@@ -695,9 +695,10 @@ connected()
 	level.bots[ level.bots.size ] = self;
 	self thread onDisconnect();
 	
-	level notify( "bot_connected", self );
-	
 	self thread watchBotDebugEvent();
+
+	waittillframeend; // wait for waittills to process
+	level notify( "bot_connected", self );
 }
 
 /*
